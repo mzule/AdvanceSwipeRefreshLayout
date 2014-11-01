@@ -72,6 +72,7 @@ public class SwipeRefreshLayout extends ViewGroup {
     private View mTarget; //the content that gets pulled down
     private int mOriginalOffsetTop;
     private OnRefreshListener mListener;
+    private OnScrollListener mOnScrollListener;
     private int mFrom;
     private boolean mRefreshing = false;
     private int mTouchSlop;
@@ -81,6 +82,7 @@ public class SwipeRefreshLayout extends ViewGroup {
     private float mCurrPercentage = 0;
     private int mProgressBarHeight;
     private int mCurrentTargetOffsetTop;
+    private int mRefreshTriggerDistance = REFRESH_TRIGGER_DISTANCE;
 
     private float mInitialMotionY;
     private float mLastMotionY;
@@ -233,6 +235,10 @@ public class SwipeRefreshLayout extends ViewGroup {
         mListener = listener;
     }
 
+    public void setOnScrollListener(OnScrollListener onScrollListener) {
+        this.mOnScrollListener = onScrollListener;
+    }
+
     private void setTriggerPercentage(float percent) {
         if (percent == 0f) {
             // No-op. A null trigger means it's uninitialized, and setting it to zero-percent
@@ -242,6 +248,10 @@ public class SwipeRefreshLayout extends ViewGroup {
         }
         mCurrPercentage = percent;
         mProgressBar.setTriggerPercentage(percent);
+
+        if (mOnScrollListener != null) {
+            mOnScrollListener.onTriggerPercentChanged(percent);
+        }
     }
 
     /**
@@ -265,6 +275,10 @@ public class SwipeRefreshLayout extends ViewGroup {
 
     public void setProgressBarHeight(int progressBarHeight) {
         this.mProgressBarHeight = progressBarHeight;
+    }
+
+    public void setRefreshTriggerDistance(int refreshTriggerDistance) {
+        this.mRefreshTriggerDistance = refreshTriggerDistance;
     }
 
     /**
@@ -320,7 +334,7 @@ public class SwipeRefreshLayout extends ViewGroup {
                 final DisplayMetrics metrics = getResources().getDisplayMetrics();
                 mDistanceToTriggerSync = (int) Math.min(
                         ((View) getParent()) .getHeight() * MAX_SWIPE_DISTANCE_FACTOR,
-                                REFRESH_TRIGGER_DISTANCE * metrics.density);
+                                mRefreshTriggerDistance * metrics.density);
             }
         }
     }
@@ -542,6 +556,10 @@ public class SwipeRefreshLayout extends ViewGroup {
             targetTop = 0;
         }
         setTargetOffsetTopAndBottom(targetTop - currentTop);
+
+        if (mOnScrollListener != null) {
+            mOnScrollListener.onContentOffsetChanged(targetTop);
+        }
     }
 
     private void setTargetOffsetTopAndBottom(int offset) {
@@ -572,6 +590,14 @@ public class SwipeRefreshLayout extends ViewGroup {
      */
     public interface OnRefreshListener {
         public void onRefresh();
+    }
+
+    /**
+     * Classes that wish to be notified when target view scrolled.
+     */
+    public interface OnScrollListener {
+        public void onTriggerPercentChanged(float percent);
+        public void onContentOffsetChanged(int targetTop);
     }
 
     /**
